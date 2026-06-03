@@ -59,3 +59,12 @@ MODEL_DIR  = BASE_DIR / "model"
 DATA_DIR   = BASE_DIR / "dataset"
 MODEL_PATH = MODEL_DIR / "emotion_model.h5"
 META_PATH  = MODEL_DIR / "model_meta.json"
+
+
+
+
+
+
+if __name__ == "__main__":
+    app = EmotiScanApp()
+    app.mainloop()
