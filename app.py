@@ -38,3 +38,24 @@ FONT_HEAD   = ("Segoe UI", 13, "bold")
 FONT_BODY   = ("Segoe UI", 10)
 FONT_SMALL  = ("Segoe UI", 9)
 FONT_MONO   = ("Consolas", 9)
+
+EMOTIONS = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
+EMOTION_EMOJI = {
+    "Angry": "😠", "Disgust": "🤢", "Fear": "😨",
+    "Happy": "😄", "Sad": "😢", "Surprise": "😮", "Neutral": "😐",
+}
+EMOTION_COLORS = {
+    "Angry": "#ef4444", "Disgust": "#84cc16", "Fear": "#8b5cf6",
+    "Happy": "#f59e0b", "Sad": "#3b82f6", "Surprise": "#f97316", "Neutral": "#6b7280",
+}
+# BGR for OpenCV
+EMOTION_BGR = {
+    "Angry": (60,60,239), "Disgust": (55,200,100), "Fear": (180,90,220),
+    "Happy": (30,165,245), "Sad": (235,100,55), "Surprise": (30,155,250), "Neutral": (130,120,100),
+}
+
+BASE_DIR   = Path(__file__).parent
+MODEL_DIR  = BASE_DIR / "model"
+DATA_DIR   = BASE_DIR / "dataset"
+MODEL_PATH = MODEL_DIR / "emotion_model.h5"
+META_PATH  = MODEL_DIR / "model_meta.json"
