@@ -1138,6 +1138,76 @@ Augmentation: Rotation±25°, Shift, Zoom, H-Flip, Brightness
         widget.insert(tk.END, text)
         widget.config(state=tk.DISABLED)
 
+class EmotiScanApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("EmotiScan AI — Tkinter Edition")
+        self.geometry("1280x800")
+        self.minsize(900, 600)
+        self.configure(bg=BG)
+
+        # Style
+        style = ttk.Style(self)
+        style.theme_use("clam")
+        style.configure("TProgressbar", troughcolor=SURFACE2, background=ACCENT,
+                        thickness=8, borderwidth=0)
+        style.configure("TScale", background=SURFACE, troughcolor=SURFACE2)
+
+        self.model  = None
+        self.labels = EMOTIONS[:]
+        self._pages = {}
+        self._cur   = None
+
+        self._build()
+        self.sidebar.activate("image")
+        self.after(200, self.reload_model)
+
+    def _build(self):
+        # Root layout
+        self.sidebar = Sidebar(self, self._nav)
+        self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
+
+        tk.Frame(self, width=1, bg=BORDER).pack(side=tk.LEFT, fill=tk.Y)
+
+        self._content = tk.Frame(self, bg=BG)
+        self._content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Build pages
+        self._pages = {
+            "image":  ImagePage(self._content, self),
+            "webcam": WebcamPage(self._content, self),
+            "train":  TrainPage(self._content, self),
+            "colab":  ColabPage(self._content, self),
+            "info":   InfoPage(self._content, self),
+        }
+        for p in self._pages.values():
+            p.place(in_=self._content, x=0, y=0, relwidth=1, relheight=1)
+
+    def _nav(self, key):
+        if self._cur:
+            self._cur.lower()
+        page = self._pages[key]
+        page.lift()
+        self._cur = page
+        # trigger refresh hooks
+        if key == "info":
+            page.refresh()
+        if key == "train":
+            page.on_show()
+
+    def reload_model(self):
+        model, labels = load_model_and_labels()
+        self.model  = model
+        self.labels = labels
+        self.sidebar.set_model_status(model is not None)
+        if model:
+            self.title(f"EmotiScan AI — Model Loaded ✅")
+        else:
+            self.title(f"EmotiScan AI — No Model")
+        # Refresh info page if visible
+        if self._cur is self._pages.get("info"):
+            self._pages["info"].refresh()
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
