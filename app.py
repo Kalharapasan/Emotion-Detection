@@ -61,7 +61,10 @@ MODEL_PATH = MODEL_DIR / "emotion_model.h5"
 META_PATH  = MODEL_DIR / "model_meta.json"
 
 
-
+def hex_to_bgr(h):
+    h = h.lstrip("#")
+    r,g,b = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
+    return (b,g,r)
 
 
 
