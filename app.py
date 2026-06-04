@@ -15,6 +15,10 @@ import zipfile
 import shutil
 from pathlib import Path
 
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+os.environ.setdefault("ABSL_MIN_LOG_LEVEL", "2")
+
 import numpy as np
 from PIL import Image, ImageTk, ImageDraw, ImageFont
 import cv2
