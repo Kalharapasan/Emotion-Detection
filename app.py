@@ -955,7 +955,37 @@ class ColabPage(PageBase):
         self._dl_bar = ttk.Progressbar(body, mode="indeterminate")
         self._dl_bar.pack(fill=tk.X, pady=4)
     
-    
+    def _open_colab(self):
+        # Open the official notebook on Colab via GitHub if available, else a placeholder
+        nb_url = "https://colab.research.google.com/github/google-research/google-research/blob/master/colab_utils/intro.ipynb"
+        # Try to upload local notebook
+        local_nb = BASE_DIR / "model_training" / "EmotionDetection_Train_Colab.ipynb"
+        if local_nb.exists():
+            messagebox.showinfo(
+                "Open Colab",
+                f"1. Go to: https://colab.research.google.com\n"
+                f"2. File → Upload notebook → select:\n   {local_nb}\n"
+                f"3. Enable GPU and run all cells"
+            )
+            webbrowser.open("https://colab.research.google.com")
+        else:
+            webbrowser.open("https://colab.research.google.com")
+
+    def _open_local_nb(self):
+        local_nb = BASE_DIR / "model_training" / "EmotionDetection_Train_Colab.ipynb"
+        if local_nb.exists():
+            webbrowser.open(str(local_nb))
+        else:
+            messagebox.showwarning("Not Found", f"Notebook not found at:\n{local_nb}")
+
+    def _open_folder(self, path):
+        import platform
+        if platform.system() == "Windows":
+            os.startfile(str(path))
+        elif platform.system() == "Darwin":
+            subprocess.run(["open", str(path)])
+        else:
+            subprocess.run(["xdg-open", str(path)])
 
 if __name__ == "__main__":
     app = EmotiScanApp()
