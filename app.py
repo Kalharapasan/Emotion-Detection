@@ -200,6 +200,11 @@ class Sidebar(tk.Frame):
     def activate(self, key):
         self._nav(key)
 
+class PageBase(tk.Frame):
+    def __init__(self, parent, app, **kw):
+        super().__init__(parent, bg=BG, **kw)
+        self.app = app
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
