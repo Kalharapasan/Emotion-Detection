@@ -429,6 +429,17 @@ class WebcamPage(PageBase):
         self._frame_to_show = None
         self._emo_counts   = {e: 0 for e in EMOTIONS}
         self._saved_frame  = None
+    
+    def _stop(self):
+        self._running = False
+
+    def _save_frame(self):
+        if self._saved_frame is not None:
+            path = filedialog.asksaveasfilename(defaultextension=".jpg",
+                                                filetypes=[("JPEG","*.jpg")])
+            if path:
+                cv2.imwrite(path, self._saved_frame)
+                messagebox.showinfo("Saved", f"Frame saved to:\n{path}")
         
     
 
