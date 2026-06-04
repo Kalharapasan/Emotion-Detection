@@ -374,6 +374,63 @@ class WebcamPage(PageBase):
         self._cap     = None
         self.heading("🎥  Live Webcam Detection")
         self._build()
+    
+    def _build(self):
+        body = tk.Frame(self, bg=BG)
+        body.pack(fill=tk.BOTH, expand=True, padx=24, pady=12)
+        body.columnconfigure(0, weight=3)
+        body.columnconfigure(1, weight=1)
+        body.rowconfigure(0, weight=1)
+
+        # Video feed
+        vid_card, vid_outer = self.card(body, accent=True)
+        vid_outer.grid(row=0, column=0, sticky="nsew", padx=(0,8), pady=4)
+        tk.Label(vid_card, text="Live Feed", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        self._video_lbl = tk.Label(vid_card, bg=SURFACE2, text="Camera feed will appear here",
+                                   fg=MUTED, font=FONT_BODY)
+        self._video_lbl.pack(fill=tk.BOTH, expand=True, pady=(8,0))
+
+        # Controls & stats
+        ctrl_card, ctrl_outer = self.card(body)
+        ctrl_outer.grid(row=0, column=1, sticky="nsew", padx=(8,0), pady=4)
+        tk.Label(ctrl_card, text="Controls", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w", pady=(0,12))
+
+        self.start_btn = self.accent_btn(ctrl_card, "▶  Start Camera", self._start, GREEN)
+        self.start_btn.pack(fill=tk.X, pady=3)
+        self.stop_btn = self.accent_btn(ctrl_card, "⏹  Stop Camera", self._stop, RED)
+        self.stop_btn.pack(fill=tk.X, pady=3)
+        self.accent_btn(ctrl_card, "📷  Save Frame", self._save_frame, "#2563eb").pack(fill=tk.X, pady=3)
+
+        tk.Frame(ctrl_card, height=1, bg=BORDER).pack(fill=tk.X, pady=10)
+        tk.Label(ctrl_card, text="Live Stats", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+
+        self._stat_frame = tk.Label(ctrl_card, text="#", font=FONT_MONO, bg=SURFACE, fg=MUTED)
+        self._stat_frame.pack(anchor="w", pady=2)
+        self._stat_faces = tk.Label(ctrl_card, text="Faces: 0", font=FONT_MONO, bg=SURFACE, fg=TEXT)
+        self._stat_faces.pack(anchor="w")
+        self._stat_fps   = tk.Label(ctrl_card, text="FPS: 0", font=FONT_MONO, bg=SURFACE, fg=TEXT)
+        self._stat_fps.pack(anchor="w")
+        self._stat_emo   = tk.Label(ctrl_card, text="Dominant: —", font=FONT_MONO, bg=SURFACE, fg=ACCENT, wraplength=160)
+        self._stat_emo.pack(anchor="w", pady=2)
+
+        tk.Frame(ctrl_card, height=1, bg=BORDER).pack(fill=tk.X, pady=10)
+        tk.Label(ctrl_card, text="Session Counts", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        self._count_labels = {}
+        for emo in EMOTIONS:
+            row = tk.Frame(ctrl_card, bg=SURFACE)
+            row.pack(fill=tk.X, pady=1)
+            color = EMOTION_COLORS.get(emo, ACCENT)
+            tk.Label(row, text=f"{EMOTION_EMOJI.get(emo,'')} {emo:<9}",
+                     font=FONT_SMALL, bg=SURFACE, fg=TEXT, width=14, anchor="w").pack(side=tk.LEFT)
+            lbl = tk.Label(row, text="0", font=("Consolas",9), bg=SURFACE, fg=color)
+            lbl.pack(side=tk.RIGHT)
+            self._count_labels[emo] = lbl
+
+        self._frame_to_show = None
+        self._emo_counts   = {e: 0 for e in EMOTIONS}
+        self._saved_frame  = None
+        
+    
 
 if __name__ == "__main__":
     app = EmotiScanApp()
