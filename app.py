@@ -986,6 +986,35 @@ class ColabPage(PageBase):
             subprocess.run(["open", str(path)])
         else:
             subprocess.run(["xdg-open", str(path)])
+    
+    def _download_model(self):
+        url = self._url_var.get().strip()
+        if not url or url == "https://":
+            messagebox.showwarning("No URL", "Please enter a download URL.")
+            return
+
+        # Convert Google Drive share links
+        if "drive.google.com/file/d/" in url:
+            file_id = url.split("/file/d/")[1].split("/")[0]
+            url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+        self._dl_bar.start(10)
+
+        def _do():
+            try:
+                MODEL_DIR.mkdir(exist_ok=True)
+                dest = MODEL_PATH
+                urllib.request.urlretrieve(url, str(dest))
+                self.after(0, lambda: messagebox.showinfo("Downloaded", f"Model saved to:\n{dest}"))
+                self.after(0, self.app.reload_model)
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Download Failed", str(e)))
+            finally:
+                self.after(0, self._dl_bar.stop)
+
+        threading.Thread(target=_do, daemon=True).start()
+    
+    
 
 if __name__ == "__main__":
     app = EmotiScanApp()
