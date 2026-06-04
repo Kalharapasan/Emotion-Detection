@@ -233,6 +233,54 @@ class ImagePage(PageBase):
         self._result_img = None
         self._build()
 
+    def _build(self):
+        body = tk.Frame(self, bg=BG)
+        body.pack(fill=tk.BOTH, expand=True, padx=24, pady=12)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=1)
+        body.rowconfigure(0, weight=1)
+
+        # Left: input
+        left_card, left_outer = self.card(body, accent=True)
+        left_outer.grid(row=0, column=0, sticky="nsew", padx=(0,8), pady=4)
+        tk.Label(left_card, text="Input Image", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w", pady=(0,8))
+
+        self._inp_lbl = tk.Label(left_card, bg=SURFACE2, text="Drop image here or click Upload",
+                                 fg=MUTED, font=FONT_BODY, width=40, height=18, relief="flat",
+                                 cursor="hand2")
+        self._inp_lbl.pack(fill=tk.BOTH, expand=True)
+        self._inp_lbl.bind("<Button-1>", lambda e: self._upload())
+
+        btn_row = tk.Frame(left_card, bg=SURFACE)
+        btn_row.pack(fill=tk.X, pady=(10,0))
+        self.accent_btn(btn_row, "📂  Upload Image", self._upload).pack(side=tk.LEFT)
+        self.accent_btn(btn_row, "🔍  Detect", self._detect, color="#2563eb").pack(side=tk.LEFT, padx=(8,0))
+
+        self._inp_info = tk.Label(left_card, text="", font=FONT_SMALL, bg=SURFACE, fg=MUTED)
+        self._inp_info.pack(anchor="w", pady=(4,0))
+
+        # Right: output
+        right_card, right_outer = self.card(body, accent=True)
+        right_outer.grid(row=0, column=1, sticky="nsew", padx=(8,0), pady=4)
+        tk.Label(right_card, text="Detection Result", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w", pady=(0,8))
+
+        self._out_lbl = tk.Label(right_card, bg=SURFACE2, text="Results will appear here",
+                                 fg=MUTED, font=FONT_BODY, width=40, height=18)
+        self._out_lbl.pack(fill=tk.BOTH, expand=True)
+
+        self._out_info = tk.Label(right_card, text="", font=FONT_SMALL, bg=SURFACE, fg=MUTED)
+        self._out_info.pack(anchor="w", pady=(4,0))
+
+        # Probability bars panel
+        bar_card, bar_outer = self.card(body)
+        bar_outer.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(8,0))
+        tk.Label(bar_card, text="Emotion Probabilities", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        self._bars_frame = tk.Frame(bar_card, bg=SURFACE)
+        self._bars_frame.pack(fill=tk.X, pady=(8,0))
+        tk.Label(self._bars_frame, text="Run detection to see probabilities",
+                 font=FONT_SMALL, fg=MUTED, bg=SURFACE).pack()
+
+        self._pil_img = None
 
 if __name__ == "__main__":
     app = EmotiScanApp()
