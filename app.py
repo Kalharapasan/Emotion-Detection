@@ -97,6 +97,12 @@ def predict_emotion(model, tensor, labels):
     all_p = {labels[i]: float(probs[i])*100 for i in range(len(labels))}
     return label, conf, all_p
 
+HAAR = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
+def detect_faces(gray):
+    faces = HAAR.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30,30))
+    return faces if len(faces)>0 else []
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
