@@ -520,6 +520,108 @@ class TrainPage(PageBase):
         body.columnconfigure(1, weight=1)
         body.rowconfigure(1, weight=1)
 
+        # Dataset section
+        ds_card, ds_outer = self.card(body, "Dataset Setup", accent=True)
+        ds_outer.grid(row=0, column=0, sticky="ew", padx=(0,8), pady=4)
+
+        # Dataset path
+        tk.Label(ds_card, text="Dataset Path (train/test folders)", font=FONT_SMALL, bg=SURFACE, fg=MUTED).pack(anchor="w", pady=(6,2))
+        row1 = tk.Frame(ds_card, bg=SURFACE)
+        row1.pack(fill=tk.X)
+        self._ds_var = tk.StringVar(value=str(DATA_DIR))
+        tk.Entry(row1, textvariable=self._ds_var, font=FONT_MONO,
+                 bg=SURFACE2, fg=TEXT, insertbackground=TEXT, bd=0,
+                 highlightthickness=1, highlightcolor=ACCENT, highlightbackground=BORDER).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, ipady=6)
+        self.accent_btn(row1, "Browse", self._browse_ds, "#374151").pack(side=tk.LEFT, padx=(4,0))
+
+        tk.Frame(ds_card, height=1, bg=BORDER).pack(fill=tk.X, pady=8)
+        tk.Label(ds_card, text="Auto-Download FER-2013 via Kaggle API", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        tk.Label(ds_card, text="Paste your kaggle.json content below:", font=FONT_SMALL, bg=SURFACE, fg=MUTED).pack(anchor="w", pady=(4,2))
+        self._kaggle_txt = tk.Text(ds_card, height=3, font=FONT_MONO,
+                                   bg=SURFACE2, fg=TEXT, insertbackground=TEXT,
+                                   bd=0, highlightthickness=1,
+                                   highlightcolor=ACCENT, highlightbackground=BORDER)
+        self._kaggle_txt.pack(fill=tk.X, pady=(0,6))
+        self._kaggle_txt.insert("1.0", '{"username":"YOUR_USERNAME","key":"YOUR_KEY"}')
+
+        row2 = tk.Frame(ds_card, bg=SURFACE)
+        row2.pack(fill=tk.X, pady=4)
+        self.accent_btn(row2, "⬇ Download Dataset", self._download_dataset).pack(side=tk.LEFT)
+        self._ds_status = tk.Label(row2, text="", font=FONT_SMALL, bg=SURFACE, fg=MUTED)
+        self._ds_status.pack(side=tk.LEFT, padx=(12,0))
+
+        # Training config
+        cfg_card, cfg_outer = self.card(body, "Training Config", accent=True)
+        cfg_outer.grid(row=0, column=1, sticky="ew", padx=(8,0), pady=4)
+
+        params = [
+            ("Epochs",      "epochs",      "60"),
+            ("Batch Size",  "batch",       "64"),
+            ("Image Size",  "img_size",    "48"),
+            ("Learning Rate","lr",         "0.001"),
+        ]
+        self._param_vars = {}
+        for label, key, default in params:
+            row = tk.Frame(cfg_card, bg=SURFACE)
+            row.pack(fill=tk.X, pady=3)
+            tk.Label(row, text=label, font=FONT_SMALL, bg=SURFACE, fg=TEXT, width=14, anchor="w").pack(side=tk.LEFT)
+            var = tk.StringVar(value=default)
+            self._param_vars[key] = var
+            tk.Entry(row, textvariable=var, font=FONT_MONO,
+                     bg=SURFACE2, fg=TEXT, insertbackground=TEXT, bd=0,
+                     highlightthickness=1, highlightcolor=ACCENT, highlightbackground=BORDER,
+                     width=10).pack(side=tk.LEFT, ipady=4)
+
+        tk.Frame(cfg_card, height=1, bg=BORDER).pack(fill=tk.X, pady=8)
+        self._aug_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(cfg_card, text="Enable data augmentation", variable=self._aug_var,
+                       font=FONT_SMALL, bg=SURFACE, fg=TEXT,
+                       selectcolor=SURFACE2, activebackground=SURFACE).pack(anchor="w")
+        self._earlystop_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(cfg_card, text="Early stopping (patience 10)", variable=self._earlystop_var,
+                       font=FONT_SMALL, bg=SURFACE, fg=TEXT,
+                       selectcolor=SURFACE2, activebackground=SURFACE).pack(anchor="w")
+
+        # Train buttons
+        btn_row = tk.Frame(cfg_card, bg=SURFACE)
+        btn_row.pack(fill=tk.X, pady=(10,0))
+        self._train_btn = self.accent_btn(btn_row, "🚀  Start Local Training", self._start_training, GREEN)
+        self._train_btn.pack(side=tk.LEFT)
+        self._stop_btn = self.accent_btn(btn_row, "⏹  Stop", self._stop_training, RED)
+        self._stop_btn.pack(side=tk.LEFT, padx=(8,0))
+        self._stop_btn.config(state=tk.DISABLED)
+
+        # Progress + log
+        prog_card, prog_outer = self.card(body)
+        prog_outer.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(8,0))
+        prog_top = tk.Frame(prog_card, bg=SURFACE)
+        prog_top.pack(fill=tk.X)
+        tk.Label(prog_top, text="Training Progress", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(side=tk.LEFT)
+        self._epoch_lbl = tk.Label(prog_top, text="", font=FONT_SMALL, bg=SURFACE, fg=MUTED)
+        self._epoch_lbl.pack(side=tk.RIGHT)
+
+        self._progress = ttk.Progressbar(prog_card, mode="determinate", maximum=100)
+        self._progress.pack(fill=tk.X, pady=6)
+
+        # Metrics row
+        met_row = tk.Frame(prog_card, bg=SURFACE)
+        met_row.pack(fill=tk.X, pady=(0,8))
+        self._met_loss = self._metric_box(met_row, "Loss", "—")
+        self._met_acc  = self._metric_box(met_row, "Accuracy", "—")
+        self._met_vlos = self._metric_box(met_row, "Val Loss", "—")
+        self._met_vacc = self._metric_box(met_row, "Val Accuracy", "—")
+
+        # Log console
+        tk.Label(prog_card, text="Console Output", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        self._console = scrolledtext.ScrolledText(
+            prog_card, height=12, font=FONT_MONO,
+            bg="#0a0c10", fg=GREEN, insertbackground=GREEN,
+            state=tk.DISABLED, bd=0)
+        self._console.pack(fill=tk.BOTH, expand=True, pady=(4,0))
+
+        self._training = False
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
