@@ -340,6 +340,27 @@ class ImagePage(PageBase):
                                                self._out_lbl.winfo_height() or 320))
         self._out_lbl.config(image=tk_img, text="")
         self._out_lbl._img = tk_img
+    
+    def _show_bars(self, all_probs):
+        for w in self._bars_frame.winfo_children():
+            w.destroy()
+        if not all_probs:
+            return
+        sorted_probs = sorted(all_probs.items(), key=lambda x: -x[1])
+        for emotion, pct in sorted_probs:
+            color = EMOTION_COLORS.get(emotion, ACCENT)
+            row = tk.Frame(self._bars_frame, bg=SURFACE)
+            row.pack(fill=tk.X, pady=2)
+            tk.Label(row, text=f"{EMOTION_EMOJI.get(emotion,'')} {emotion:<10}",
+                     font=FONT_SMALL, bg=SURFACE, fg=TEXT, width=14, anchor="w").pack(side=tk.LEFT)
+            bar_bg = tk.Frame(row, bg=SURFACE2, height=14)
+            bar_bg.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            bar_bg.update_idletasks()
+            bar_w = int((pct/100) * (bar_bg.winfo_width() or 300))
+            tk.Frame(bar_bg, bg=color, width=bar_w, height=14).place(x=0,y=0)
+            tk.Label(row, text=f"{pct:5.1f}%", font=("Consolas",9),
+                     bg=SURFACE, fg=TEXT, width=6).pack(side=tk.LEFT, padx=(4,0))
+
 
 if __name__ == "__main__":
     app = EmotiScanApp()
