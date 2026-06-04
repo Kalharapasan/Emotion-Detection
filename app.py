@@ -360,6 +360,12 @@ class ImagePage(PageBase):
             tk.Frame(bar_bg, bg=color, width=bar_w, height=14).place(x=0,y=0)
             tk.Label(row, text=f"{pct:5.1f}%", font=("Consolas",9),
                      bg=SURFACE, fg=TEXT, width=6).pack(side=tk.LEFT, padx=(4,0))
+    
+    def _fit_image(self, img, box):
+        bw, bh = max(box[0],1), max(box[1],1)
+        img.thumbnail((bw, bh), Image.LANCZOS)
+        return ImageTk.PhotoImage(img)
+
 
 
 if __name__ == "__main__":
