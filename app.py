@@ -505,7 +505,20 @@ class WebcamPage(PageBase):
         else:
             self._video_lbl.config(image="", text="Camera stopped")
 
+class TrainPage(PageBase):
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        self.heading("🏋  Model Training")
+        self._train_thread = None
+        self._log_queue    = queue.Queue()
+        self._build()
 
+    def _build(self):
+        body = tk.Frame(self, bg=BG)
+        body.pack(fill=tk.BOTH, expand=True, padx=24, pady=12)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=1)
+        body.rowconfigure(1, weight=1)
 
 if __name__ == "__main__":
     app = EmotiScanApp()
