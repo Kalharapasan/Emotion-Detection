@@ -89,6 +89,13 @@ def preprocess_face(gray, x, y, w, h):
     roi = cv2.resize(roi, (48,48)).astype("float32") / 255.0
     return roi.reshape(1,48,48,1)    
 
+def predict_emotion(model, tensor, labels):
+    probs = model.predict(tensor, verbose=0)[0]
+    idx   = int(np.argmax(probs))
+    label = labels[idx]
+    conf  = float(probs[idx]) * 100
+    all_p = {labels[i]: float(probs[i])*100 for i in range(len(labels))}
+    return label, conf, all_p
 
 if __name__ == "__main__":
     app = EmotiScanApp()
