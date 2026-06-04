@@ -849,6 +849,19 @@ class TrainPage(PageBase):
 
         t = threading.Thread(target=_train, daemon=True)
         t.start()
+    
+    def _stop_training(self):
+        self._training = False
+        self._log("⏹ Stop requested — will finish current epoch.")
+        self._stop_btn.config(state=tk.DISABLED)
+
+    def _update_metrics(self, pct, loss, acc, vloss, vacc, ep, total):
+        self._progress["value"] = pct
+        self._epoch_lbl.config(text=f"Epoch {ep}/{total} — {pct}%")
+        self._met_loss.config(text=f"{loss:.4f}")
+        self._met_acc.config(text=f"{acc*100:.1f}%")
+        self._met_vlos.config(text=f"{vloss:.4f}")
+        self._met_vacc.config(text=f"{vacc*100:.1f}%")
 
 if __name__ == "__main__":
     app = EmotiScanApp()
