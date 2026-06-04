@@ -296,6 +296,50 @@ class ImagePage(PageBase):
         self._inp_lbl._img = tk_img  # prevent GC
         self._inp_info.config(text=f"{img.width}×{img.height}px  ·  {Path(path).name}")
         self._out_lbl.config(image="", text="Click Detect →")
+    
+    def _detect(self):
+        if not self._pil_img:
+            messagebox.showwarning("No image", "Please upload an image first.")
+            return
+        if not self.app.model:
+            messagebox.showwarning("No model", "No model loaded.\nPlease train a model first (Train Model tab).")
+            return
+
+        np_img = np.array(self._pil_img)
+        enhance = self.app.sidebar.enhance_var.get()
+        if enhance:
+            gray = cv2.equalizeHist(cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY))
+        else:
+            gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+
+        faces = detect_faces(gray)
+        result_img = self._pil_img.copy()
+        draw = ImageDraw.Draw(result_img)
+        all_results = []
+
+        if len(faces) == 0:
+            self._out_info.config(text="⚠️ No face detected. Try a clearer image.", fg=YELLOW)
+        else:
+            min_conf = self.app.sidebar.conf_var.get()
+            for (x,y,w,h) in faces:
+                tensor = preprocess_face(gray,x,y,w,h)
+                emotion, conf, all_p = predict_emotion(self.app.model, tensor, self.app.labels)
+                if conf >= min_conf:
+                    color = EMOTION_COLORS.get(emotion, "#7c6af7")
+                    draw.rectangle([x,y,x+w,y+h], outline=color, width=3)
+                    lbl = f"{EMOTION_EMOJI.get(emotion,'')} {emotion} {conf:.0f}%"
+                    draw.rectangle([x, max(0,y-26), x+len(lbl)*9, y], fill=color)
+                    draw.text((x+4, max(0,y-22)), lbl, fill="white")
+                    all_results.append((emotion, conf, all_p))
+
+            self._out_info.config(
+                text=f"✅ {len(all_results)} face(s) detected", fg=GREEN)
+            self._show_bars(all_results[0][2] if all_results else {})
+
+        tk_img = self._fit_image(result_img, (self._out_lbl.winfo_width() or 400,
+                                               self._out_lbl.winfo_height() or 320))
+        self._out_lbl.config(image=tk_img, text="")
+        self._out_lbl._img = tk_img
 
 if __name__ == "__main__":
     app = EmotiScanApp()
