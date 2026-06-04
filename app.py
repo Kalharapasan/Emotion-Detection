@@ -66,7 +66,23 @@ def hex_to_bgr(h):
     r,g,b = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
     return (b,g,r)
 
-
+def load_model_and_labels():
+    DEFAULT = EMOTIONS[:]
+    if not MODEL_PATH.exists():
+        return None, DEFAULT
+    try:
+        import tensorflow as tf
+        model = tf.keras.models.load_model(str(MODEL_PATH))
+        if META_PATH.exists():
+            with open(META_PATH) as f:
+                meta = json.load(f)
+            labels = meta.get("labels", DEFAULT)
+        else:
+            labels = DEFAULT
+        return model, labels
+    except Exception as e:
+        print(f"Model load error: {e}")
+        return None, DEFAULT
 
 if __name__ == "__main__":
     app = EmotiScanApp()
