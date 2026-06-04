@@ -204,6 +204,13 @@ class PageBase(tk.Frame):
     def __init__(self, parent, app, **kw):
         super().__init__(parent, bg=BG, **kw)
         self.app = app
+    
+    def heading(self, text):
+        tk.Label(self, text=text, font=FONT_TITLE, bg=BG, fg=TEXT).pack(
+            anchor="w", padx=24, pady=(20,4))
+        tk.Frame(self, height=1, bg=BORDER).pack(fill=tk.X, padx=24)
+    
+    
 
 if __name__ == "__main__":
     app = EmotiScanApp()
