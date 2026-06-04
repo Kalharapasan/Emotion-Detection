@@ -226,6 +226,14 @@ class PageBase(tk.Frame):
                          font=("Segoe UI",10,"bold"), bd=0, relief=tk.FLAT, cursor="hand2",
                          bg=color, fg=WHITE, activebackground=color, padx=18, pady=8)
 
+class ImagePage(PageBase):
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        self.heading("📷  Image Upload & Detection")
+        self._result_img = None
+        self._build()
+
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
