@@ -1014,7 +1014,27 @@ class ColabPage(PageBase):
 
         threading.Thread(target=_do, daemon=True).start()
     
-    
+    def _toggle_poll(self):
+        if not self._polling:
+            self._polling = True
+            self._poll_btn.config(text="⏹  Stop Watching", bg=RED)
+            self._poll_status.config(text="Watching for model...", fg=YELLOW)
+            self._watch()
+        else:
+            self._polling = False
+            self._poll_btn.config(text="👁  Start Watching", bg=ACCENT)
+            self._poll_status.config(text="Stopped", fg=MUTED)
+
+    def _watch(self):
+        if not self._polling:
+            return
+        if MODEL_PATH.exists():
+            self._polling = False
+            self._poll_btn.config(text="👁  Start Watching", bg=ACCENT)
+            self._poll_status.config(text="✅ Model found! Loading...", fg=GREEN)
+            self.app.reload_model()
+        else:
+            self.after(3000, self._watch)
 
 if __name__ == "__main__":
     app = EmotiScanApp()
