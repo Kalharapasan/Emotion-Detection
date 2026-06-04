@@ -126,6 +126,64 @@ class Sidebar(tk.Frame):
         self._buttons = {}
         self._active  = None
         self._build()    
+    
+    def _build(self):
+        # Logo
+        logo = tk.Frame(self, bg=SURFACE)
+        logo.pack(fill=tk.X, padx=16, pady=(20,12))
+        tk.Label(logo, text="🧠", font=("Segoe UI",28), bg=SURFACE, fg=TEXT).pack()
+        tk.Label(logo, text="EmotiScan AI", font=("Segoe UI",13,"bold"), bg=SURFACE, fg=TEXT).pack()
+        tk.Label(logo, text="v3.0 · Tkinter Edition", font=FONT_SMALL, bg=SURFACE, fg=MUTED).pack()
+
+        tk.Frame(self, height=1, bg=BORDER).pack(fill=tk.X, padx=12, pady=8)
+
+        nav_items = [
+            ("📷 Image Upload",   "image"),
+            ("🎥 Live Webcam",    "webcam"),
+            ("🏋 Train Model",   "train"),
+            ("☁ Google Colab",   "colab"),
+            ("📊 Model Info",     "info"),
+        ]
+        for label, key in nav_items:
+            btn = tk.Button(
+                self, text=label, anchor="w",
+                font=FONT_BODY, bd=0, relief=tk.FLAT, cursor="hand2",
+                padx=16, pady=10,
+                bg=SURFACE, fg=TEXT, activebackground=ACCENT,
+                activeforeground=WHITE, command=lambda k=key: self._nav(k)
+            )
+            btn.pack(fill=tk.X, padx=8, pady=2)
+            self._buttons[key] = btn
+
+        tk.Frame(self, height=1, bg=BORDER).pack(fill=tk.X, padx=12, pady=8)
+
+        # Settings label
+        tk.Label(self, text="SETTINGS", font=("Segoe UI",8,"bold"),
+                 bg=SURFACE, fg=MUTED).pack(anchor="w", padx=16)
+
+        # Confidence slider
+        tk.Label(self, text="Min Confidence", font=FONT_SMALL, bg=SURFACE, fg=TEXT).pack(anchor="w", padx=16, pady=(8,0))
+        self.conf_var = tk.IntVar(value=30)
+        sl = ttk.Scale(self, from_=0, to=100, variable=self.conf_var, orient=tk.HORIZONTAL)
+        sl.pack(fill=tk.X, padx=16)
+        tk.Label(self, textvariable=self.conf_var, font=FONT_SMALL, bg=SURFACE, fg=ACCENT).pack(anchor="w", padx=16)
+
+        # Enhance toggle
+        self.enhance_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(self, text="Pre-enhance image", variable=self.enhance_var,
+                       font=FONT_SMALL, bg=SURFACE, fg=TEXT,
+                       selectcolor=SURFACE2, activebackground=SURFACE).pack(anchor="w", padx=16, pady=4)
+
+        # Show bars toggle
+        self.bars_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(self, text="Show probability bars", variable=self.bars_var,
+                       font=FONT_SMALL, bg=SURFACE, fg=TEXT,
+                       selectcolor=SURFACE2, activebackground=SURFACE).pack(anchor="w", padx=16, pady=4)
+
+        # Bottom status
+        self.status_lbl = tk.Label(self, text="⚫ No model loaded",
+                                   font=FONT_SMALL, bg=SURFACE, fg=RED, wraplength=180)
+        self.status_lbl.pack(side=tk.BOTTOM, padx=8, pady=12)
 
 if __name__ == "__main__":
     app = EmotiScanApp()
