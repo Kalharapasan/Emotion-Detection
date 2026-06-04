@@ -210,7 +210,16 @@ class PageBase(tk.Frame):
             anchor="w", padx=24, pady=(20,4))
         tk.Frame(self, height=1, bg=BORDER).pack(fill=tk.X, padx=24)
     
-    
+    def card(self, parent, title=None, accent=False):
+        outer = tk.Frame(parent, bg=BORDER, bd=0)
+        inner = tk.Frame(outer, bg=SURFACE, padx=16, pady=14)
+        inner.pack(padx=1, pady=1, fill=tk.BOTH, expand=True)
+        if accent:
+            bar = tk.Frame(inner, bg=ACCENT, width=4)
+            bar.pack(side=tk.LEFT, fill=tk.Y, padx=(0,12))
+        if title:
+            tk.Label(inner, text=title, font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        return inner, outer
 
 if __name__ == "__main__":
     app = EmotiScanApp()
