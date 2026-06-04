@@ -184,6 +184,12 @@ class Sidebar(tk.Frame):
         self.status_lbl = tk.Label(self, text="⚫ No model loaded",
                                    font=FONT_SMALL, bg=SURFACE, fg=RED, wraplength=180)
         self.status_lbl.pack(side=tk.BOTTOM, padx=8, pady=12)
+    
+    def _nav(self, key):
+        for k, b in self._buttons.items():
+            b.config(bg=SURFACE if k != key else ACCENT, fg=TEXT if k != key else WHITE)
+        self._active = key
+        self._on_nav(key)
 
 if __name__ == "__main__":
     app = EmotiScanApp()
