@@ -366,7 +366,14 @@ class ImagePage(PageBase):
         img.thumbnail((bw, bh), Image.LANCZOS)
         return ImageTk.PhotoImage(img)
 
-
+class WebcamPage(PageBase):
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        self._running = False
+        self._thread  = None
+        self._cap     = None
+        self.heading("🎥  Live Webcam Detection")
+        self._build()
 
 if __name__ == "__main__":
     app = EmotiScanApp()
