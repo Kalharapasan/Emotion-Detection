@@ -103,6 +103,14 @@ def detect_faces(gray):
     faces = HAAR.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30,30))
     return faces if len(faces)>0 else []
 
+class RoundedFrame(tk.Canvas):
+    def __init__(self, parent, radius=16, bg=SURFACE, border=BORDER, **kw):
+        super().__init__(parent, bg=BG, highlightthickness=0, **kw)
+        self._radius = radius
+        self._bg     = bg
+        self._border = border
+        self.bind("<Configure>", self._redraw)
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
