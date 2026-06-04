@@ -83,6 +83,12 @@ def load_model_and_labels():
     except Exception as e:
         print(f"Model load error: {e}")
         return None, DEFAULT
+    
+def preprocess_face(gray, x, y, w, h):
+    roi = gray[y:y+h, x:x+w]
+    roi = cv2.resize(roi, (48,48)).astype("float32") / 255.0
+    return roi.reshape(1,48,48,1)    
+
 
 if __name__ == "__main__":
     app = EmotiScanApp()
