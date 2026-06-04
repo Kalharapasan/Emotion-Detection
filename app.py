@@ -863,6 +863,100 @@ class TrainPage(PageBase):
         self._met_vlos.config(text=f"{vloss:.4f}")
         self._met_vacc.config(text=f"{vacc*100:.1f}%")
 
+class ColabPage(PageBase):
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        self.heading("☁  Google Colab Training")
+        self._poll_thread = None
+        self._polling     = False
+        self._build()
+
+    def _build(self):
+        body = tk.Frame(self, bg=BG)
+        body.pack(fill=tk.BOTH, expand=True, padx=24, pady=12)
+
+        # Step 1: Open Colab
+        step1, s1_outer = self.card(body, accent=True)
+        s1_outer.pack(fill=tk.X, pady=4)
+        tk.Label(step1, text="Step 1 — Open Notebook in Google Colab",
+                 font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        tk.Label(step1, text="Click below to open the training notebook in your browser:",
+                 font=FONT_SMALL, bg=SURFACE, fg=MUTED).pack(anchor="w", pady=(4,8))
+
+        row1 = tk.Frame(step1, bg=SURFACE)
+        row1.pack(fill=tk.X)
+        self.accent_btn(row1, "🚀  Open Colab Notebook", self._open_colab).pack(side=tk.LEFT)
+        self.accent_btn(row1, "📓  Open Local Notebook", self._open_local_nb, "#374151").pack(side=tk.LEFT, padx=(8,0))
+
+        tk.Label(step1, text=(
+            "• Enable GPU: Runtime → Change runtime type → T4 GPU\n"
+            "• Upload kaggle.json and run all cells\n"
+            "• The model will be saved as emotion_model.h5 in Colab Files"
+        ), font=FONT_SMALL, bg=SURFACE, fg=MUTED, justify=tk.LEFT).pack(anchor="w", pady=(8,0))
+
+        # Step 2: Google Drive sync
+        step2, s2_outer = self.card(body, accent=True)
+        s2_outer.pack(fill=tk.X, pady=4)
+        tk.Label(step2, text="Step 2 — Auto-Download Trained Model",
+                 font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        tk.Label(step2, text=(
+            "After Colab finishes training:\n"
+            "  A) Manual: Download emotion_model.h5 from Colab Files panel → place in model/\n"
+            "  B) Auto via Google Drive: Mount Drive in Colab, copy model there, enter path below"
+        ), font=FONT_SMALL, bg=SURFACE, fg=MUTED, justify=tk.LEFT).pack(anchor="w", pady=(4,8))
+
+        # Drive download
+        gd_card, gd_outer = self.card(body)
+        gd_outer.pack(fill=tk.X, pady=4)
+        tk.Label(gd_card, text="Auto-Download via Direct URL",
+                 font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        tk.Label(gd_card, text=(
+            "Share your model file (e.g. from Google Drive) and paste a direct download URL.\n"
+            "For Google Drive: File → Share → Copy link, then convert to direct link."
+        ), font=FONT_SMALL, bg=SURFACE, fg=MUTED, justify=tk.LEFT).pack(anchor="w", pady=(4,8))
+
+        row2 = tk.Frame(gd_card, bg=SURFACE)
+        row2.pack(fill=tk.X)
+        self._url_var = tk.StringVar(value="https://")
+        tk.Entry(row2, textvariable=self._url_var, font=FONT_MONO,
+                 bg=SURFACE2, fg=TEXT, insertbackground=TEXT, bd=0,
+                 highlightthickness=1, highlightcolor=ACCENT, highlightbackground=BORDER).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, ipady=6, padx=(0,8))
+        self.accent_btn(row2, "⬇ Download Model", self._download_model).pack(side=tk.LEFT)
+
+        # Polling (watch a directory)
+        poll_card, poll_outer = self.card(body)
+        poll_outer.pack(fill=tk.X, pady=4)
+        tk.Label(poll_card, text="Watch Folder — Auto-Load When Model Appears",
+                 font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        tk.Label(poll_card, text=(
+            "If you place emotion_model.h5 in the model/ folder (via Google Drive desktop sync,\n"
+            "manual copy, or any method), the app will automatically detect and load it."
+        ), font=FONT_SMALL, bg=SURFACE, fg=MUTED, justify=tk.LEFT).pack(anchor="w", pady=(4,8))
+
+        row3 = tk.Frame(poll_card, bg=SURFACE)
+        row3.pack(fill=tk.X)
+        self._poll_btn = self.accent_btn(row3, "👁  Start Watching", self._toggle_poll)
+        self._poll_btn.pack(side=tk.LEFT)
+        self._poll_status = tk.Label(row3, text="", font=FONT_SMALL, bg=SURFACE, fg=MUTED)
+        self._poll_status.pack(side=tk.LEFT, padx=(12,0))
+
+        # Model path display
+        MODEL_DIR.mkdir(exist_ok=True)
+        path_card, path_outer = self.card(body)
+        path_outer.pack(fill=tk.X, pady=4)
+        tk.Label(path_card, text=f"Model folder: {MODEL_DIR}", font=FONT_MONO,
+                 bg=SURFACE, fg=MUTED).pack(anchor="w")
+        row4 = tk.Frame(path_card, bg=SURFACE)
+        row4.pack(fill=tk.X, pady=(8,0))
+        self.accent_btn(row4, "📂  Open Model Folder", lambda: self._open_folder(MODEL_DIR)).pack(side=tk.LEFT)
+        self.accent_btn(row4, "♻  Reload Model Now", self.app.reload_model, "#374151").pack(side=tk.LEFT, padx=(8,0))
+
+        self._dl_bar = ttk.Progressbar(body, mode="indeterminate")
+        self._dl_bar.pack(fill=tk.X, pady=4)
+    
+    
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
