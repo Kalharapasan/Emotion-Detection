@@ -221,6 +221,11 @@ class PageBase(tk.Frame):
             tk.Label(inner, text=title, font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
         return inner, outer
 
+    def accent_btn(self, parent, text, command, color=ACCENT):
+        return tk.Button(parent, text=text, command=command,
+                         font=("Segoe UI",10,"bold"), bd=0, relief=tk.FLAT, cursor="hand2",
+                         bg=color, fg=WHITE, activebackground=color, padx=18, pady=8)
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
