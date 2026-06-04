@@ -83,11 +83,11 @@ def load_model_and_labels():
     except Exception as e:
         print(f"Model load error: {e}")
         return None, DEFAULT
-    
+
 def preprocess_face(gray, x, y, w, h):
     roi = gray[y:y+h, x:x+w]
     roi = cv2.resize(roi, (48,48)).astype("float32") / 255.0
-    return roi.reshape(1,48,48,1)    
+    return roi.reshape(1,48,48,1)
 
 def predict_emotion(model, tensor, labels):
     probs = model.predict(tensor, verbose=0)[0]
@@ -110,14 +110,15 @@ class RoundedFrame(tk.Canvas):
         self._bg     = bg
         self._border = border
         self.bind("<Configure>", self._redraw)
-    
+
     def _redraw(self, evt=None):
         w, h = self.winfo_width(), self.winfo_height()
         r    = self._radius
         self.delete("bg")
         pts = [r,0, w-r,0, w,0, w,r, w,h-r, w,h, w-r,h, r,h, 0,h, 0,h-r, 0,r, 0,0]
         self.create_polygon(pts, smooth=True, fill=self._bg, outline=self._border, width=1, tags="bg")
-    
+
+
 class Sidebar(tk.Frame):
     def __init__(self, parent, on_nav, **kw):
         super().__init__(parent, bg=SURFACE, width=200, **kw)
@@ -125,8 +126,8 @@ class Sidebar(tk.Frame):
         self._on_nav = on_nav
         self._buttons = {}
         self._active  = None
-        self._build()    
-    
+        self._build()
+
     def _build(self):
         # Logo
         logo = tk.Frame(self, bg=SURFACE)
@@ -184,13 +185,13 @@ class Sidebar(tk.Frame):
         self.status_lbl = tk.Label(self, text="⚫ No model loaded",
                                    font=FONT_SMALL, bg=SURFACE, fg=RED, wraplength=180)
         self.status_lbl.pack(side=tk.BOTTOM, padx=8, pady=12)
-    
+
     def _nav(self, key):
         for k, b in self._buttons.items():
             b.config(bg=SURFACE if k != key else ACCENT, fg=TEXT if k != key else WHITE)
         self._active = key
         self._on_nav(key)
-    
+
     def set_model_status(self, loaded):
         if loaded:
             self.status_lbl.config(text="🟢 Model loaded", fg=GREEN)
@@ -204,12 +205,12 @@ class PageBase(tk.Frame):
     def __init__(self, parent, app, **kw):
         super().__init__(parent, bg=BG, **kw)
         self.app = app
-    
+
     def heading(self, text):
         tk.Label(self, text=text, font=FONT_TITLE, bg=BG, fg=TEXT).pack(
             anchor="w", padx=24, pady=(20,4))
         tk.Frame(self, height=1, bg=BORDER).pack(fill=tk.X, padx=24)
-    
+
     def card(self, parent, title=None, accent=False):
         outer = tk.Frame(parent, bg=BORDER, bd=0)
         inner = tk.Frame(outer, bg=SURFACE, padx=16, pady=14)
@@ -225,6 +226,10 @@ class PageBase(tk.Frame):
         return tk.Button(parent, text=text, command=command,
                          font=("Segoe UI",10,"bold"), bd=0, relief=tk.FLAT, cursor="hand2",
                          bg=color, fg=WHITE, activebackground=color, padx=18, pady=8)
+
+    def badge(self, parent, text, color=ACCENT):
+        return tk.Label(parent, text=text, font=("Consolas",8,"bold"),
+                        bg=color+"33", fg=color, padx=8, pady=3)
 
 class ImagePage(PageBase):
     def __init__(self, parent, app):
@@ -281,7 +286,7 @@ class ImagePage(PageBase):
                  font=FONT_SMALL, fg=MUTED, bg=SURFACE).pack()
 
         self._pil_img = None
-    
+
     def _upload(self):
         path = filedialog.askopenfilename(
             filetypes=[("Images","*.jpg *.jpeg *.png *.webp *.bmp")])
@@ -296,7 +301,7 @@ class ImagePage(PageBase):
         self._inp_lbl._img = tk_img  # prevent GC
         self._inp_info.config(text=f"{img.width}×{img.height}px  ·  {Path(path).name}")
         self._out_lbl.config(image="", text="Click Detect →")
-    
+
     def _detect(self):
         if not self._pil_img:
             messagebox.showwarning("No image", "Please upload an image first.")
@@ -340,7 +345,7 @@ class ImagePage(PageBase):
                                                self._out_lbl.winfo_height() or 320))
         self._out_lbl.config(image=tk_img, text="")
         self._out_lbl._img = tk_img
-    
+
     def _show_bars(self, all_probs):
         for w in self._bars_frame.winfo_children():
             w.destroy()
@@ -360,7 +365,7 @@ class ImagePage(PageBase):
             tk.Frame(bar_bg, bg=color, width=bar_w, height=14).place(x=0,y=0)
             tk.Label(row, text=f"{pct:5.1f}%", font=("Consolas",9),
                      bg=SURFACE, fg=TEXT, width=6).pack(side=tk.LEFT, padx=(4,0))
-    
+
     def _fit_image(self, img, box):
         bw, bh = max(box[0],1), max(box[1],1)
         img.thumbnail((bw, bh), Image.LANCZOS)
@@ -374,7 +379,7 @@ class WebcamPage(PageBase):
         self._cap     = None
         self.heading("🎥  Live Webcam Detection")
         self._build()
-    
+
     def _build(self):
         body = tk.Frame(self, bg=BG)
         body.pack(fill=tk.BOTH, expand=True, padx=24, pady=12)
@@ -429,7 +434,19 @@ class WebcamPage(PageBase):
         self._frame_to_show = None
         self._emo_counts   = {e: 0 for e in EMOTIONS}
         self._saved_frame  = None
-    
+
+    def _start(self):
+        if not self.app.model:
+            messagebox.showwarning("No model", "Train and load a model first.")
+            return
+        if self._running:
+            return
+        self._running = True
+        self._emo_counts = {e: 0 for e in EMOTIONS}
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+        self._update_ui()
+
     def _stop(self):
         self._running = False
 
@@ -440,8 +457,7 @@ class WebcamPage(PageBase):
             if path:
                 cv2.imwrite(path, self._saved_frame)
                 messagebox.showinfo("Saved", f"Frame saved to:\n{path}")
-        
-    
+
     def _loop(self):
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
@@ -478,7 +494,7 @@ class WebcamPage(PageBase):
             self._frame_to_show = (rgb, fc, len(faces), fps)
         cap.release()
         self._running = False
-    
+
     def _update_ui(self):
         if self._frame_to_show is not None:
             rgb, fc, nf, fps = self._frame_to_show
@@ -621,7 +637,7 @@ class TrainPage(PageBase):
         self._console.pack(fill=tk.BOTH, expand=True, pady=(4,0))
 
         self._training = False
-    
+
     def _metric_box(self, parent, label, value):
         box = tk.Frame(parent, bg=SURFACE2, padx=14, pady=8)
         box.pack(side=tk.LEFT, padx=4)
@@ -652,7 +668,7 @@ class TrainPage(PageBase):
         path = filedialog.askdirectory()
         if path:
             self._ds_var.set(path)
-        
+
     def _download_dataset(self):
         kaggle_json = self._kaggle_txt.get("1.0", tk.END).strip()
         try:
@@ -691,7 +707,7 @@ class TrainPage(PageBase):
                 self.after(0, lambda: self._ds_status.config(text="❌ Error", fg=RED))
 
         threading.Thread(target=_do_download, daemon=True).start()
-    
+
     def _start_training(self):
         ds_path = Path(self._ds_var.get())
         train_dir = ds_path / "train"
@@ -849,7 +865,7 @@ class TrainPage(PageBase):
 
         t = threading.Thread(target=_train, daemon=True)
         t.start()
-    
+
     def _stop_training(self):
         self._training = False
         self._log("⏹ Stop requested — will finish current epoch.")
@@ -954,7 +970,7 @@ class ColabPage(PageBase):
 
         self._dl_bar = ttk.Progressbar(body, mode="indeterminate")
         self._dl_bar.pack(fill=tk.X, pady=4)
-    
+
     def _open_colab(self):
         # Open the official notebook on Colab via GitHub if available, else a placeholder
         nb_url = "https://colab.research.google.com/github/google-research/google-research/blob/master/colab_utils/intro.ipynb"
@@ -986,7 +1002,7 @@ class ColabPage(PageBase):
             subprocess.run(["open", str(path)])
         else:
             subprocess.run(["xdg-open", str(path)])
-    
+
     def _download_model(self):
         url = self._url_var.get().strip()
         if not url or url == "https://":
@@ -1013,7 +1029,7 @@ class ColabPage(PageBase):
                 self.after(0, self._dl_bar.stop)
 
         threading.Thread(target=_do, daemon=True).start()
-    
+
     def _toggle_poll(self):
         if not self._polling:
             self._polling = True
@@ -1138,6 +1154,7 @@ Augmentation: Rotation±25°, Shift, Zoom, H-Flip, Brightness
         widget.insert(tk.END, text)
         widget.config(state=tk.DISABLED)
 
+
 class EmotiScanApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -1207,6 +1224,8 @@ class EmotiScanApp(tk.Tk):
         # Refresh info page if visible
         if self._cur is self._pages.get("info"):
             self._pages["info"].refresh()
+
+
 
 if __name__ == "__main__":
     app = EmotiScanApp()
