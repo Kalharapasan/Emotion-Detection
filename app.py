@@ -630,6 +630,68 @@ class TrainPage(PageBase):
         val_lbl.pack()
         return val_lbl
 
+    def _log(self, msg):
+        self._log_queue.put(msg)
+
+    def _flush_log(self):
+        try:
+            while True:
+                msg = self._log_queue.get_nowait()
+                self._console.config(state=tk.NORMAL)
+                self._console.insert(tk.END, msg + "\n")
+                self._console.see(tk.END)
+                self._console.config(state=tk.DISABLED)
+        except queue.Empty:
+            pass
+        self.after(200, self._flush_log)
+
+    def on_show(self):
+        self._flush_log()
+
+    def _browse_ds(self):
+        path = filedialog.askdirectory()
+        if path:
+            self._ds_var.set(path)
+        
+    def _download_dataset(self):
+        kaggle_json = self._kaggle_txt.get("1.0", tk.END).strip()
+        try:
+            cred = json.loads(kaggle_json)
+        except:
+            messagebox.showerror("Error", "Invalid kaggle.json format.\nExpected: {\"username\":\"...\",\"key\":\"...\"}")
+            return
+
+        dest = Path(self._ds_var.get())
+        self._ds_status.config(text="Downloading...", fg=YELLOW)
+        self.update_idletasks()
+
+        def _do_download():
+            try:
+                kaggle_dir = Path.home() / ".kaggle"
+                kaggle_dir.mkdir(exist_ok=True)
+                with open(kaggle_dir / "kaggle.json", "w") as f:
+                    json.dump(cred, f)
+                os.chmod(kaggle_dir / "kaggle.json", 0o600)
+
+                dest.mkdir(parents=True, exist_ok=True)
+                self._log("📥 Starting FER-2013 download via Kaggle API...")
+                result = subprocess.run(
+                    [sys.executable, "-m", "kaggle", "datasets", "download",
+                     "-d", "msambare/fer2013", "--unzip", "-p", str(dest)],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    self._log("✅ Dataset downloaded successfully!")
+                    self.after(0, lambda: self._ds_status.config(text="✅ Downloaded!", fg=GREEN))
+                else:
+                    self._log(f"❌ Kaggle error:\n{result.stderr}")
+                    self.after(0, lambda: self._ds_status.config(text="❌ Failed", fg=RED))
+            except Exception as e:
+                self._log(f"❌ Error: {e}")
+                self.after(0, lambda: self._ds_status.config(text="❌ Error", fg=RED))
+
+        threading.Thread(target=_do_download, daemon=True).start()
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
