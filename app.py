@@ -281,6 +281,21 @@ class ImagePage(PageBase):
                  font=FONT_SMALL, fg=MUTED, bg=SURFACE).pack()
 
         self._pil_img = None
+    
+    def _upload(self):
+        path = filedialog.askopenfilename(
+            filetypes=[("Images","*.jpg *.jpeg *.png *.webp *.bmp")])
+        if not path:
+            return
+        self._img_path = path
+        img = Image.open(path).convert("RGB")
+        self._pil_img = img
+        tk_img = self._fit_image(img, (self._inp_lbl.winfo_width() or 400,
+                                       self._inp_lbl.winfo_height() or 320))
+        self._inp_lbl.config(image=tk_img, text="")
+        self._inp_lbl._img = tk_img  # prevent GC
+        self._inp_info.config(text=f"{img.width}×{img.height}px  ·  {Path(path).name}")
+        self._out_lbl.config(image="", text="Click Detect →")
 
 if __name__ == "__main__":
     app = EmotiScanApp()
