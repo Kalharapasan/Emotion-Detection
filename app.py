@@ -691,6 +691,164 @@ class TrainPage(PageBase):
                 self.after(0, lambda: self._ds_status.config(text="❌ Error", fg=RED))
 
         threading.Thread(target=_do_download, daemon=True).start()
+    
+    def _start_training(self):
+        ds_path = Path(self._ds_var.get())
+        train_dir = ds_path / "train"
+        test_dir  = ds_path / "test"
+
+        if not train_dir.exists():
+            messagebox.showerror("Error", f"train/ folder not found in:\n{ds_path}")
+            return
+
+        try:
+            import tensorflow as tf
+        except ImportError:
+            messagebox.showerror("TensorFlow Missing",
+                                 "TensorFlow not installed.\nRun: pip install tensorflow")
+            return
+
+        try:
+            epochs    = int(self._param_vars["epochs"].get())
+            batch     = int(self._param_vars["batch"].get())
+            img_size  = int(self._param_vars["img_size"].get())
+            lr        = float(self._param_vars["lr"].get())
+        except ValueError:
+            messagebox.showerror("Config Error", "Invalid training parameters.")
+            return
+
+        aug       = self._aug_var.get()
+        earlystop = self._earlystop_var.get()
+
+        self._training = True
+        self._train_btn.config(state=tk.DISABLED)
+        self._stop_btn.config(state=tk.NORMAL)
+        self._progress["value"] = 0
+
+        def _train():
+            try:
+                from tensorflow.keras import layers
+                from tensorflow.keras.preprocessing.image import ImageDataGenerator
+                from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+
+                self._log("=" * 50)
+                self._log("🚀 Starting local training...")
+                self._log(f"   Dataset: {ds_path}")
+                self._log(f"   Epochs: {epochs} | Batch: {batch} | LR: {lr}")
+                self._log(f"   Augmentation: {aug} | Early stop: {earlystop}")
+                self._log("=" * 50)
+
+                # Data generators
+                if aug:
+                    train_gen_obj = ImageDataGenerator(
+                        rescale=1./255, rotation_range=25,
+                        width_shift_range=0.1, height_shift_range=0.1,
+                        zoom_range=0.15, horizontal_flip=True,
+                        brightness_range=[0.8,1.2]
+                    )
+                else:
+                    train_gen_obj = ImageDataGenerator(rescale=1./255)
+
+                test_gen_obj = ImageDataGenerator(rescale=1./255)
+
+                train_gen = train_gen_obj.flow_from_directory(
+                    str(train_dir), target_size=(img_size,img_size),
+                    color_mode="grayscale", batch_size=batch,
+                    class_mode="categorical", shuffle=True
+                )
+                test_gen = test_gen_obj.flow_from_directory(
+                    str(test_dir), target_size=(img_size,img_size),
+                    color_mode="grayscale", batch_size=batch,
+                    class_mode="categorical", shuffle=False
+                )
+                labels = list(train_gen.class_indices.keys())
+                n_cls  = len(labels)
+                self._log(f"✅ Classes ({n_cls}): {labels}")
+
+                # Build model
+                inp = tf.keras.Input(shape=(img_size,img_size,1))
+                def conv_block(x, f, drop=0.25):
+                    x = layers.Conv2D(f,(3,3),padding="same",activation="relu")(x)
+                    x = layers.BatchNormalization()(x)
+                    x = layers.Conv2D(f,(3,3),padding="same",activation="relu")(x)
+                    x = layers.BatchNormalization()(x)
+                    x = layers.MaxPooling2D()(x)
+                    x = layers.Dropout(drop)(x)
+                    return x
+
+                x = conv_block(inp, 64)
+                x = conv_block(x, 128)
+                x = conv_block(x, 256)
+                x = conv_block(x, 512)
+                x = layers.GlobalAveragePooling2D()(x)
+                x = layers.Dense(512, activation="relu")(x)
+                x = layers.BatchNormalization()(x)
+                x = layers.Dropout(0.5)(x)
+                x = layers.Dense(256, activation="relu")(x)
+                x = layers.Dropout(0.3)(x)
+                out = layers.Dense(n_cls, activation="softmax")(x)
+                model = tf.keras.Model(inp, out)
+
+                model.compile(
+                    optimizer=tf.keras.optimizers.Adam(lr),
+                    loss="categorical_crossentropy",
+                    metrics=["accuracy"]
+                )
+                self._log(f"✅ Model built: {model.count_params():,} params")
+
+                # Callbacks
+                cbs = [ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=5, verbose=0)]
+                if earlystop:
+                    cbs.append(EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True))
+
+                # Custom callback for live updates
+                class LiveCallback(tf.keras.callbacks.Callback):
+                    def __init__(cb_self):
+                        super().__init__()
+                    def on_epoch_end(cb_self, epoch, logs=None):
+                        if not self._training:
+                            cb_self.model.stop_training = True
+                        logs = logs or {}
+                        pct  = int((epoch+1)/epochs*100)
+                        loss = logs.get("loss",0)
+                        acc  = logs.get("accuracy",0)
+                        vloss= logs.get("val_loss",0)
+                        vacc = logs.get("val_accuracy",0)
+                        self._log(f"Epoch {epoch+1:>3}/{epochs} | loss:{loss:.4f} acc:{acc:.4f} | val_loss:{vloss:.4f} val_acc:{vacc:.4f}")
+                        self.after(0, lambda: self._update_metrics(pct, loss, acc, vloss, vacc, epoch+1, epochs))
+
+                cbs.append(LiveCallback())
+
+                MODEL_DIR.mkdir(exist_ok=True)
+                cbs.append(ModelCheckpoint(str(MODEL_PATH), save_best_only=True, monitor="val_accuracy"))
+
+                # Train
+                self._log("🏋 Training started...")
+                model.fit(train_gen, validation_data=test_gen, epochs=epochs, callbacks=cbs, verbose=0)
+
+                # Save meta
+                meta = {"labels": labels, "val_accuracy": float(model.evaluate(test_gen, verbose=0)[1]),
+                        "img_size": img_size}
+                with open(META_PATH,"w") as f:
+                    json.dump(meta, f, indent=2)
+
+                self._log("=" * 50)
+                self._log(f"✅ Training complete! Model saved → {MODEL_PATH}")
+                self._log(f"   Val accuracy: {meta['val_accuracy']*100:.2f}%")
+
+                # Reload model in app
+                self.after(0, self.app.reload_model)
+
+            except Exception as e:
+                import traceback
+                self._log(f"❌ Training error:\n{traceback.format_exc()}")
+            finally:
+                self._training = False
+                self.after(0, lambda: self._train_btn.config(state=tk.NORMAL))
+                self.after(0, lambda: self._stop_btn.config(state=tk.DISABLED))
+
+        t = threading.Thread(target=_train, daemon=True)
+        t.start()
 
 if __name__ == "__main__":
     app = EmotiScanApp()
