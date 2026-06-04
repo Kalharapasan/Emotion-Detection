@@ -1036,6 +1036,108 @@ class ColabPage(PageBase):
         else:
             self.after(3000, self._watch)
 
+class InfoPage(PageBase):
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        self.heading("📊  Model Information")
+        self._build()
+
+    def _build(self):
+        body = tk.Frame(self, bg=BG)
+        body.pack(fill=tk.BOTH, expand=True, padx=24, pady=12)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=1)
+
+        # Status card
+        stat_card, stat_outer = self.card(body, "Model Status", accent=True)
+        stat_outer.grid(row=0, column=0, sticky="nsew", padx=(0,8), pady=4)
+        self._status_text = scrolledtext.ScrolledText(stat_card, height=10, font=FONT_MONO,
+                                                       bg=SURFACE2, fg=TEXT, state=tk.DISABLED, bd=0)
+        self._status_text.pack(fill=tk.BOTH, expand=True, pady=(8,0))
+
+        # Emotion classes
+        emo_card, emo_outer = self.card(body, "Emotion Classes", accent=True)
+        emo_outer.grid(row=0, column=1, sticky="nsew", padx=(8,0), pady=4)
+        for emo in EMOTIONS:
+            color = EMOTION_COLORS.get(emo, ACCENT)
+            row = tk.Frame(emo_card, bg=SURFACE)
+            row.pack(fill=tk.X, pady=4)
+            tk.Canvas(row, width=14, height=14, bg=SURFACE, highlightthickness=0).pack(side=tk.LEFT, padx=(0,8))
+            c = row.winfo_children()[-1]
+            c.create_oval(0,0,14,14, fill=color, outline=color)
+            tk.Label(row, text=f"{EMOTION_EMOJI.get(emo,'')}  {emo}", font=FONT_BODY,
+                     bg=SURFACE, fg=TEXT).pack(side=tk.LEFT)
+
+        # Architecture
+        arch_card, arch_outer = self.card(body)
+        arch_outer.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(8,0))
+        tk.Label(arch_card, text="Architecture", font=FONT_HEAD, bg=SURFACE, fg=TEXT).pack(anchor="w")
+        arch_txt = scrolledtext.ScrolledText(arch_card, height=14, font=FONT_MONO,
+                                             bg="#0a0c10", fg=ACCENT, state=tk.DISABLED, bd=0)
+        arch_txt.pack(fill=tk.BOTH, expand=True, pady=(8,0))
+        self._set_text(arch_txt, """\
+Input  (48 × 48 × 1 grayscale)
+  ↓
+Conv Block 1 → Conv2D(64) × 2 + BatchNorm + MaxPool + Dropout(0.25)
+  ↓
+Conv Block 2 → Conv2D(128) × 2 + BatchNorm + MaxPool + Dropout(0.25)
+  ↓
+Conv Block 3 → Conv2D(256) × 2 + BatchNorm + MaxPool + Dropout(0.25)
+  ↓
+Conv Block 4 → Conv2D(512) + BatchNorm + MaxPool + Dropout(0.25)
+  ↓
+Global Average Pooling 2D
+  ↓
+Dense(512) + BatchNorm + ReLU + Dropout(0.5)
+  ↓
+Dense(256) + ReLU + Dropout(0.3)
+  ↓
+Dense(7, softmax) → Emotion Probabilities
+  ↓
+OUTPUT: [Angry, Disgust, Fear, Happy, Sad, Surprise, Neutral]
+
+Dataset     : FER-2013 (35,887 images, 48×48 grayscale)
+Optimizer   : Adam (lr=0.001 with ReduceLROnPlateau)
+Loss        : Categorical Cross-Entropy
+Augmentation: Rotation±25°, Shift, Zoom, H-Flip, Brightness
+""")
+        self._arch_txt = arch_txt
+
+    def refresh(self):
+        if not self.app.model:
+            info = "⚫  No model loaded\n\n" \
+                   "Train a model via the Train Model tab\n" \
+                   "or download one via the Google Colab tab.\n\n" \
+                   f"Expected path: {MODEL_PATH}"
+        else:
+            try:
+                from io import StringIO
+                stream = StringIO()
+                self.app.model.summary(print_fn=lambda x: stream.write(x+"\n"))
+                summary = stream.getvalue()
+                meta = {}
+                if META_PATH.exists():
+                    with open(META_PATH) as f:
+                        meta = json.load(f)
+                val_acc = meta.get("val_accuracy","N/A")
+                if isinstance(val_acc, float):
+                    val_acc = f"{val_acc*100:.2f}%"
+                info = (f"🟢  Model loaded\n\n"
+                        f"Path: {MODEL_PATH}\n"
+                        f"Labels: {meta.get('labels', self.app.labels)}\n"
+                        f"Val Accuracy: {val_acc}\n"
+                        f"Image Size: {meta.get('img_size',48)}×{meta.get('img_size',48)}\n\n"
+                        f"─── Keras Summary ───\n{summary}")
+            except Exception as e:
+                info = f"Model loaded but error getting info:\n{e}"
+        self._set_text(self._status_text, info)
+
+    def _set_text(self, widget, text):
+        widget.config(state=tk.NORMAL)
+        widget.delete("1.0", tk.END)
+        widget.insert(tk.END, text)
+        widget.config(state=tk.DISABLED)
+
 if __name__ == "__main__":
     app = EmotiScanApp()
     app.mainloop()
