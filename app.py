@@ -621,6 +621,14 @@ class TrainPage(PageBase):
         self._console.pack(fill=tk.BOTH, expand=True, pady=(4,0))
 
         self._training = False
+    
+    def _metric_box(self, parent, label, value):
+        box = tk.Frame(parent, bg=SURFACE2, padx=14, pady=8)
+        box.pack(side=tk.LEFT, padx=4)
+        tk.Label(box, text=label, font=FONT_SMALL, bg=SURFACE2, fg=MUTED).pack()
+        val_lbl = tk.Label(box, text=value, font=("Segoe UI",14,"bold"), bg=SURFACE2, fg=ACCENT)
+        val_lbl.pack()
+        return val_lbl
 
 if __name__ == "__main__":
     app = EmotiScanApp()
