@@ -117,6 +117,15 @@ class RoundedFrame(tk.Canvas):
         self.delete("bg")
         pts = [r,0, w-r,0, w,0, w,r, w,h-r, w,h, w-r,h, r,h, 0,h, 0,h-r, 0,r, 0,0]
         self.create_polygon(pts, smooth=True, fill=self._bg, outline=self._border, width=1, tags="bg")
+    
+class Sidebar(tk.Frame):
+    def __init__(self, parent, on_nav, **kw):
+        super().__init__(parent, bg=SURFACE, width=200, **kw)
+        self.pack_propagate(False)
+        self._on_nav = on_nav
+        self._buttons = {}
+        self._active  = None
+        self._build()    
 
 if __name__ == "__main__":
     app = EmotiScanApp()
