@@ -479,6 +479,33 @@ class WebcamPage(PageBase):
         cap.release()
         self._running = False
     
+    def _update_ui(self):
+        if self._frame_to_show is not None:
+            rgb, fc, nf, fps = self._frame_to_show
+            h, w = rgb.shape[:2]
+            lbl_w = max(self._video_lbl.winfo_width(), 400)
+            lbl_h = max(self._video_lbl.winfo_height(), 300)
+            scale = min(lbl_w/w, lbl_h/h)
+            new_w, new_h = int(w*scale), int(h*scale)
+            if new_w>0 and new_h>0:
+                img = Image.fromarray(rgb).resize((new_w,new_h), Image.NEAREST)
+                tk_img = ImageTk.PhotoImage(img)
+                self._video_lbl.config(image=tk_img, text="")
+                self._video_lbl._img = tk_img
+            self._stat_frame.config(text=f"Frame: #{fc}")
+            self._stat_faces.config(text=f"Faces: {nf}")
+            self._stat_fps.config(text=f"FPS: {fps:.1f}")
+            dom = max(self._emo_counts, key=self._emo_counts.get) if any(self._emo_counts.values()) else "—"
+            self._stat_emo.config(text=f"Dominant: {EMOTION_EMOJI.get(dom,'')} {dom}")
+            for emo, lbl in self._count_labels.items():
+                lbl.config(text=str(self._emo_counts.get(emo,0)))
+            self._frame_to_show = None
+        if self._running:
+            self.after(30, self._update_ui)
+        else:
+            self._video_lbl.config(image="", text="Camera stopped")
+
+
 
 if __name__ == "__main__":
     app = EmotiScanApp()
