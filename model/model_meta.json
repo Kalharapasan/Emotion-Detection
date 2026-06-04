@@ -1,0 +1,23 @@
+{
+  "labels": [
+    "angry",
+    "disgust",
+    "fear",
+    "happy",
+    "neutral",
+    "sad",
+    "surprise"
+  ],
+  "img_size": 48,
+  "model_version": "v2",
+  "val_accuracy": 0.6588186025619507,
+  "class_indices": {
+    "angry": 0,
+    "disgust": 1,
+    "fear": 2,
+    "happy": 3,
+    "neutral": 4,
+    "sad": 5,
+    "surprise": 6
+  }
+}
