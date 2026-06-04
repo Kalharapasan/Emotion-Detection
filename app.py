@@ -442,6 +442,43 @@ class WebcamPage(PageBase):
                 messagebox.showinfo("Saved", f"Frame saved to:\n{path}")
         
     
+    def _loop(self):
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            messagebox.showerror("Camera Error", "Cannot open camera.")
+            self._running = False
+            return
+        fc = 0
+        t0 = time.time()
+        while self._running:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            fc += 1
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = detect_faces(gray)
+            min_conf = self.app.sidebar.conf_var.get()
+            for (x,y,w,h) in faces:
+                tensor = preprocess_face(gray,x,y,w,h)
+                emotion, conf, _ = predict_emotion(self.app.model, tensor, self.app.labels)
+                self._emo_counts[emotion] = self._emo_counts.get(emotion,0)+1
+                if conf >= min_conf:
+                    col = EMOTION_BGR.get(emotion,(150,150,150))
+                    cv2.rectangle(frame,(x,y),(x+w,y+h),col,2)
+                    txt = f"{emotion} {conf:.0f}%"
+                    (tw,th),_ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)
+                    cv2.rectangle(frame,(x,max(0,y-th-10)),(x+tw+8,y),col,-1)
+                    cv2.putText(frame,txt,(x+4,max(th,y-4)),
+                                cv2.FONT_HERSHEY_SIMPLEX,0.65,(255,255,255),2,cv2.LINE_AA)
+            fps = fc / (time.time()-t0+1e-9)
+            cv2.putText(frame,f"FPS:{fps:.1f}",(frame.shape[1]-90,25),
+                        cv2.FONT_HERSHEY_SIMPLEX,0.5,(100,255,100),1)
+            self._saved_frame = frame.copy()
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self._frame_to_show = (rgb, fc, len(faces), fps)
+        cap.release()
+        self._running = False
+    
 
 if __name__ == "__main__":
     app = EmotiScanApp()
