@@ -110,6 +110,13 @@ class RoundedFrame(tk.Canvas):
         self._bg     = bg
         self._border = border
         self.bind("<Configure>", self._redraw)
+    
+    def _redraw(self, evt=None):
+        w, h = self.winfo_width(), self.winfo_height()
+        r    = self._radius
+        self.delete("bg")
+        pts = [r,0, w-r,0, w,0, w,r, w,h-r, w,h, w-r,h, r,h, 0,h, 0,h-r, 0,r, 0,0]
+        self.create_polygon(pts, smooth=True, fill=self._bg, outline=self._border, width=1, tags="bg")
 
 if __name__ == "__main__":
     app = EmotiScanApp()
